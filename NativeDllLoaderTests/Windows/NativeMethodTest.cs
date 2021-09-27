@@ -9,9 +9,6 @@ namespace NativeDllLoaderTests.Windows {
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate int MessageBox(IntPtr hWnd, string lpText, string lpCaption, uint type);
 
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        public delegate int InvalidMessageBox(IntPtr hWnd, string lpText, string lpCaption);
-
         [TestMethod()]
         public void ExistsTest() {
             NativeDll dll = new("user32.dll");
@@ -26,28 +23,30 @@ namespace NativeDllLoaderTests.Windows {
 
             NativeMethod<MessageBox> method = new(dll, "MessageBoxA");
 
-            int ret = (int)method.Invoke(IntPtr.Zero, "Text", "Caption", 0u);
+            int ret = (int)method.AsDelegate().Invoke(IntPtr.Zero, "Text", "Caption", 0u);
 
             Console.WriteLine(ret);
         }
 
-        [TestMethod]
-        public void InvalidMessageBoxInvokeTest() {
-            NativeDll dll = new("user32.dll");
-
-            NativeMethod<InvalidMessageBox> method = new(dll, "MessageBoxA");
-
-            int ret = (int)method.Invoke(IntPtr.Zero, "Text", "Caption");
-
-            Console.WriteLine(ret);
-        }
-
-         [TestMethod()]
+        [TestMethod()]
         public void NotFoundTest() {
-            Assert.ThrowsException<MissingMethodException>(() => {
+            Assert.ThrowsException<EntryPointNotFoundException>(() => {
                 NativeDll dll = new("user32.dll");
 
                 NativeMethod<MessageBox> method = new(dll, "MessageBoxB");
+            });
+        }
+
+        [TestMethod]
+        public void DisposedTest() {
+            NativeDll dll = new("user32.dll");
+
+            NativeMethod<MessageBox> method = new(dll, "MessageBoxA");
+
+            dll.Dispose();
+
+            Assert.ThrowsException<InvalidOperationException>(() => {
+                method.AsDelegate().Invoke(IntPtr.Zero, "Text", "Caption", 0u);
             });
         }
     }

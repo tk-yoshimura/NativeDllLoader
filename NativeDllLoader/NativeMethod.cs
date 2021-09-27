@@ -3,59 +3,45 @@ using System.Runtime.InteropServices;
 
 namespace NativeDllLoader {
     public class NativeMethod<Delegate> where Delegate : System.Delegate {
-        private readonly Delegate function;
 
+        private readonly Delegate method;
         internal NativeDll Assembly { private set; get; }
-        internal IntPtr Handle { private set; get; } = IntPtr.Zero;
+        internal IntPtr Address { private set; get; } = IntPtr.Zero;
+        public string Name { private set; get; } = string.Empty;
 
         public NativeMethod(NativeDll assembly, string funcname) {
             if (!assembly.IsValid) {
                 throw new ArgumentException(
-                    "The specified assembly has not been loaded.",
+                    $"The specified assembly {assembly.Name} has not been loaded.",
                     nameof(assembly)
                 );
             }
 
             this.Assembly = assembly;
-
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                throw new NotImplementedException();
-            }
-
-            this.Handle = WindowsKernel.GetProcAddress(assembly.Handle, funcname);
-
-            if (this.Handle == IntPtr.Zero) {
-                throw new MissingMethodException($"{assembly.Name} - {funcname}");
-            }
-
-            this.function = Marshal.GetDelegateForFunctionPointer<Delegate>(Handle);
+            this.Address = NativeLibrary.GetExport(assembly.Handle, funcname);
+            this.method = Marshal.GetDelegateForFunctionPointer<Delegate>(Address);
+            this.Name = funcname;
         }
 
-        public bool IsValid => Assembly.IsValid && Handle != IntPtr.Zero;
+        public bool IsValid => Assembly.IsValid && Address != IntPtr.Zero;
 
-        public static bool Exists(NativeDll dll, string funcname) {
-            if (!dll.IsValid) {
+        public static bool Exists(NativeDll assembly, string funcname) {
+            if (!assembly.IsValid) {
                 throw new ArgumentException(
-                    "The specified assembly has not been loaded.",
-                    nameof(dll)
+                    $"The specified assembly {assembly.Name} has not been loaded.",
+                    nameof(assembly)
                 );
             }
 
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                throw new NotImplementedException();
-            }
-
-            IntPtr handle = WindowsKernel.GetProcAddress(dll.Handle, funcname);
-
-            return handle != IntPtr.Zero;
+            return NativeLibrary.TryGetExport(assembly.Handle, funcname, out IntPtr address) && (address != IntPtr.Zero);
         }
 
-        public object Invoke(params object[] args) {
-            if (!IsValid) {
-                throw new InvalidOperationException();
-            }
+        public Delegate AsDelegate() { 
+            return IsValid ? method : throw new InvalidOperationException();
+        }
 
-            return function.DynamicInvoke(args.Length > 0 ? args : null);
+        public override string ToString() {
+            return IsValid ? $"{Assembly.Name} - {Name}" : "Missing entry point.";
         }
     }
 }

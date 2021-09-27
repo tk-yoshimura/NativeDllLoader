@@ -8,17 +8,7 @@ namespace NativeDllLoader {
         public string Name { private set; get; } = string.Empty;
 
         public NativeDll(string dllname) {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                throw new NotImplementedException();
-            }
-
-            dllname = dllname.Replace('/', '\\');
-
-            this.Handle = WindowsKernel.LoadLibrary(dllname);
-
-            if (!IsValid) {
-                throw new DllNotFoundException(dllname);
-            }
+            this.Handle = NativeLibrary.Load(dllname);
 
             this.Name = dllname;
         }
@@ -26,24 +16,22 @@ namespace NativeDllLoader {
         public bool IsValid => Handle != IntPtr.Zero;
 
         public static bool Exists(string libname) {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                throw new NotImplementedException();
-            }
-
-            IntPtr handle = WindowsKernel.LoadLibrary(libname);
-
-            if (handle == IntPtr.Zero) {
+            if (!NativeLibrary.TryLoad(libname, out IntPtr handle) || (handle == IntPtr.Zero)) {
                 return false;
             }
 
-            WindowsKernel.FreeLibrary(handle);
+            NativeLibrary.Free(handle);
 
             return true;
         }
 
+        public override string ToString() {
+            return IsValid ? Name : "Failed to load.";
+        }
+
         public void Dispose() {
             if (Handle != IntPtr.Zero) {
-                WindowsKernel.FreeLibrary(Handle);
+                NativeLibrary.Free(Handle);
                 Handle = IntPtr.Zero;
                 Name = string.Empty;
             }

@@ -1,5 +1,5 @@
-﻿using NativeDllLoader;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NativeDllLoader;
 using System;
 
 namespace NativeDllLoaderTests.Windows {
