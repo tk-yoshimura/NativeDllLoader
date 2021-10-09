@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace NativeDllLoaderTests.Windows {
     [TestClass]
     public class NativeMethodTest {
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
         public delegate int MessageBox(IntPtr hWnd, string lpText, string lpCaption, uint type);
 
         [TestMethod()]
